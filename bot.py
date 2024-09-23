@@ -118,8 +118,10 @@ def get_profile():
 
         for upgrade_type, level in upgrades.items():
             print(f"{Fore.BLUE+Style.BRIGHT}[ {upgrade_type.capitalize()} Level ]: {level + 1}")
+        return True
     else:
         print("Gagal mendapatkan data, status code:", response.status_code)
+        return False
 
 def check_balance():
     response = requests.get(url_balance, headers=headers)
@@ -153,10 +155,8 @@ def main():
     while True:
         for index, token in enumerate(tokens):
             headers['telegram-data'] = token
-            info = get_profile()
-            if info:
-                print(f"Memproses untuk token ke {index + 1}")
-
+            print(f"Memproses untuk token ke {index + 1}")
+            if get_profile():
                 if confirm_storage.lower() == 'y':
                     upgrade_item('storage')
                     time.sleep(1)
