@@ -22,7 +22,6 @@ def print_welcome_message():
 def clear_console():
     os.system('cls' if os.name == 'nt' else 'clear')
 
-# URL endpoint
 url_claim = 'https://elb.seeddao.org/api/v1/seed/claim'
 url_balance = 'https://elb.seeddao.org/api/v1/profile/balance'
 url_checkin = 'https://elb.seeddao.org/api/v1/login-bonuses'
@@ -60,43 +59,6 @@ def load_credentials():
         print("Terjadi kesalahan saat memuat token:", str(e))
         return []
 
-def check_worm():
-    response = requests.get('https://elb.seeddao.org/api/v1/worms', headers=headers)
-    if response.status_code == 200:
-        worm_data = response.json()['data']
-        next_refresh = worm_data.get('next_refresh')
-        is_caught = worm_data['is_caught']
-
-        if next_refresh:
-            next_refresh_dt = datetime.datetime.fromisoformat(next_refresh[:-1] + '+00:00')
-            now_utc = datetime.datetime.now(pytz.utc)
-            time_diff_seconds = (next_refresh_dt - now_utc).total_seconds()
-            hours = int(time_diff_seconds // 3600)
-            minutes = int((time_diff_seconds % 3600) // 60)
-            print(f"{Fore.GREEN + Style.BRIGHT}[ Worms ]: Next in {hours} jam {minutes} menit - Status: {'Caught' if is_caught else 'Available'}")
-        else:
-            print(f"{Fore.RED + Style.BRIGHT}[ Worms ]: Data next_refresh tidak tersedia.")
-        
-        return worm_data
-    else:
-        print(f"{Fore.RED + Style.BRIGHT}[ Worms ]: Gagal mendapatkan data worm.")
-        return None
-
-def catch_worm():
-    worm_data = check_worm()
-    if worm_data and not worm_data['is_caught']:
-        response = requests.post('https://elb.seeddao.org/api/v1/worms/catch', headers=headers)
-        if response.status_code == 200:
-            print(f"{Fore.GREEN + Style.BRIGHT}[ Worms ]: Berhasil menangkap")
-        elif response.status_code == 400:
-            print(f"{Fore.RED + Style.BRIGHT}[ Worms ]: Sudah tertangkap")
-        elif response.status_code == 404:
-            print(f"{Fore.RED + Style.BRIGHT}[ Worms ]: Worm tidak ditemukan")
-        else:
-            print(f"{Fore.RED + Style.BRIGHT}[ Worms ]: Gagal menangkap worm, status code:", response)
-    else:
-        print(f"{Fore.RED + Style.BRIGHT}[ Worms ]: Worm tidak tersedia atau sudah tertangkap.")
-
 def get_profile():
     response = requests.get(url_get_profile, headers=headers)
     if response.status_code == 200:
@@ -107,16 +69,13 @@ def get_profile():
         for upgrade in profile_data['data']['upgrades']:
             upgrade_type = upgrade['upgrade_type']
             upgrade_level = upgrade['upgrade_level']
-            if upgrade_type in upgrades:
-                if upgrade_level > upgrades[upgrade_type]:
-                    upgrades[upgrade_type] = upgrade_level
-            else:
-                upgrades[upgrade_type] = upgrade_level
+            upgrades[upgrade_type] = max(upgrades.get(upgrade_type, 0), upgrade_level)
         for upgrade_type, level in upgrades.items():
             print(f"{Fore.BLUE + Style.BRIGHT}[ {upgrade_type.capitalize()} Level ]: {level + 1}")
+        return True
     else:
         print("Gagal mendapatkan data, status code:", response.status_code)
-        return None
+        return False
 
 def check_balance():
     response = requests.get(url_balance, headers=headers)
@@ -128,32 +87,18 @@ def check_balance():
         print(f"{Fore.RED + Style.BRIGHT}[ Balance ]: Gagal |{response.status_code}")
         return False
 
-def cekin_daily():
-    response = requests.post(url_checkin, headers=headers)
-    if response.status_code == 200:
-        data = response.json()
-        day = data.get('data', {}).get('no', '')
-        print(f"{Fore.GREEN + Style.BRIGHT}[ Check-in ]: Check-in berhasil | Day {day}")
-    else:
-        data = response.json()
-        if data.get('message') == 'already claimed for today':
-            print(f"{Fore.RED + Style.BRIGHT}[ Check-in ]: Sudah dilakukan hari ini")
-        else:
-            print(f"{Fore.RED + Style.BRIGHT}[ Check-in ]: Gagal | {data}")
-
 def upgrade_item(item):
     url_map = {
         'storage': url_upgrade_storage,
         'mining': url_upgrade_mining,
         'holy': url_upgrade_holy
     }
-    confirm = input(f"Apakah Anda ingin melakukan upgrade {item}? (y/n): ")
-    if confirm.lower() == 'y':
-        response = requests.post(url_map[item], headers=headers)
-        if response.status_code == 200:
-            print(f"[ Upgrade {item} ]: Berhasil")
-        else:
-            print(f"[ Upgrade {item} ]: Gagal, balance tidak cukup.")
+    response = requests.post(url_map[item], headers=headers)
+    print(f"Response untuk upgrade {item}: {response.status_code}, {response.text}")
+    if response.status_code == 200:
+        print(f"[ Upgrade {item} ]: Berhasil")
+    else:
+        print(f"[ Upgrade {item} ]: Gagal, balance tidak cukup atau kesalahan lain.")
 
 def main():
     print_welcome_message()
@@ -182,34 +127,10 @@ def main():
 
                 if check_balance():
                     response = requests.post(url_claim, headers=headers)
-                    if response.status_code == 200:
-                        print(f"{Fore.GREEN + Style.BRIGHT}[ Claim ]: Claim berhasil")
-                    else:
-                        print(f"{Fore.RED + Style.BRIGHT}[ Claim ]: Gagal, status code: {response.status_code}")
+                    print(f"Response untuk claim: {response.status_code}, {response.text}")
 
-                    cekin_daily()
-                    
-                worm_data = check_worm()
-                if worm_data:
-                    next_refresh = worm_data.get('next_refresh')
-                    if next_refresh:
-                        next_refresh_dt = datetime.datetime.fromisoformat(next_refresh[:-1] + '+00:00')
-                        now_utc = datetime.datetime.now(pytz.utc)
-                        time_diff_seconds = (next_refresh_dt - now_utc).total_seconds()
-                        wait_time = max(0, int(time_diff_seconds))
-                        print(f"{Fore.CYAN + Style.BRIGHT}Menunggu hingga worm tersedia dalam {wait_time} detik.")
-                    else:
-                        wait_time = 20  # Fallback jika tidak ada next_refresh
-                else:
-                    wait_time = 20  # Default wait time jika gagal mendapatkan data worm
-
-                for i in range(wait_time, 0, -1):
-                    sys.stdout.write(f"\r{Fore.CYAN + Style.BRIGHT}============ Selesai, tunggu {i} detik.. ============")
-                    sys.stdout.flush()
-                    time.sleep(1)
-                print()
+                time.sleep(20)  # Tunggu 20 detik sebelum memproses token berikutnya
                 clear_console()
 
 if __name__ == "__main__":
     main()
-                    
