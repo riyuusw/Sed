@@ -1,7 +1,6 @@
 import requests
 import time
 from colorama import init, Fore, Style
-import sys
 import os
 import datetime
 import pytz
@@ -32,7 +31,6 @@ url_upgrade_holy = 'https://elb.seeddao.org/api/v1/upgrades/holy-water'
 url_get_profile = 'https://elb.seeddao.org/api/v1/profile'
 url_check_worm = 'https://elb.seeddao.org/api/v1/worms'
 
-# Headers yang diperlukan untuk request
 headers = {
     'accept': 'application/json, text/plain, */*',
     'content-length': '0',
@@ -57,6 +55,7 @@ def load_credentials():
 
 def get_profile():
     response = requests.get(url_get_profile, headers=headers)
+    debug_print(f"Get Profile Response: {response.status_code} - {response.text}")
     if response.status_code == 200:
         profile_data = response.json()
         name = profile_data['data']['name']
@@ -68,6 +67,7 @@ def get_profile():
 
 def check_balance():
     response = requests.get(url_balance, headers=headers)
+    debug_print(f"Check Balance Response: {response.status_code} - {response.text}")
     if response.status_code == 200:
         balance_data = response.json()
         balance = balance_data['data'] / 1000000000
@@ -79,6 +79,7 @@ def check_balance():
 
 def claim():
     response = requests.post(url_claim, headers=headers)
+    debug_print(f"Claim Response: {response.status_code} - {response.text}")
     if response.status_code == 200:
         print(f"{Fore.GREEN+Style.BRIGHT}[ Claim ]: Claim berhasil")
     elif response.status_code == 400:
@@ -88,6 +89,7 @@ def claim():
 
 def check_worm():
     response = requests.get(url_check_worm, headers=headers)
+    debug_print(f"Check Worm Response: {response.status_code} - {response.text}")
     if response.status_code == 200:
         worm_data = response.json().get('data', {})
         next_refresh = worm_data.get('next_refresh', 'Data next_refresh tidak tersedia.')
