@@ -19,7 +19,6 @@ def print_welcome_message():
 def clear_console():
     os.system('cls' if os.name == 'nt' else 'clear')
 
-# URL endpoints
 url_claim = 'https://elb.seeddao.org/api/v1/seed/claim'
 url_balance = 'https://elb.seeddao.org/api/v1/profile/balance'
 url_upgrade_storage = 'https://elb.seeddao.org/api/v1/seed/storage-size/upgrade'
@@ -78,18 +77,20 @@ def check_worm():
     response = requests.get(url_check_worm, headers=headers)
     if response.status_code == 200:
         worm_data = response.json().get('data', {})
-        next_refresh = worm_data.get('next_refresh', 'Data next_refresh tidak tersedia.')
-        is_caught = worm_data.get('is_caught', False)
         
         if 'next_refresh' in worm_data:
-            next_refresh_dt = datetime.datetime.fromisoformat(worm_data['next_refresh'][:-1] + '+00:00')
+            next_refresh = worm_data['next_refresh']
+            is_caught = worm_data.get('is_caught', False)
+
+            next_refresh_dt = datetime.datetime.fromisoformat(next_refresh[:-1] + '+00:00')
             now_utc = datetime.datetime.now(pytz.utc)
             time_diff_seconds = (next_refresh_dt - now_utc).total_seconds()
             hours = int(time_diff_seconds // 3600)
             minutes = int((time_diff_seconds % 3600) // 60)
+
             print(f"{Fore.GREEN+Style.BRIGHT}[ Worms ]: Next in {hours} jam {minutes} menit - Status: {'Caught' if is_caught else 'Available'}")
         else:
-            print(f"{Fore.RED+Style.BRIGHT}[ Worms ]: {next_refresh}")
+            print(f"{Fore.RED+Style.BRIGHT}[ Worms ]: Data 'next_refresh' tidak tersedia.")
     else:
         print(f"{Fore.RED+Style.BRIGHT}[ Worms ]: Gagal mendapatkan data worm, status code: {response.status_code}")
 
@@ -120,4 +121,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-            
