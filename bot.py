@@ -66,21 +66,24 @@ def check_worm():
     response = requests.get('https://elb.seeddao.org/api/v1/worms', headers=headers)
     if response.status_code == 200:
         worm_data = response.json()['data']
-        next_refresh = worm_data['next_refresh']
-        is_caught = worm_data['is_caught']
+        if 'next_refresh' in worm_data:
+            next_refresh = worm_data['next_refresh']
+            is_caught = worm_data['is_caught']
 
-        next_refresh_dt = datetime.datetime.fromisoformat(next_refresh[:-1] + '+00:00')
-        now_utc = datetime.datetime.now(pytz.utc)
+            next_refresh_dt = datetime.datetime.fromisoformat(next_refresh[:-1] + '+00:00')
+            now_utc = datetime.datetime.now(pytz.utc)
 
-        time_diff_seconds = (next_refresh_dt - now_utc).total_seconds()
-        hours = int(time_diff_seconds // 3600)
-        minutes = int((time_diff_seconds % 3600) // 60)
+            time_diff_seconds = (next_refresh_dt - now_utc).total_seconds()
+            hours = int(time_diff_seconds // 3600)
+            minutes = int((time_diff_seconds % 3600) // 60)
 
-        print(f"{Fore.GREEN + Style.BRIGHT}[ Worms ]: Next in {hours} jam {minutes} menit - Status: {'Caught' if is_caught else 'Available'}")
-
-        return worm_data
+            print(f"{Fore.GREEN + Style.BRIGHT}[ Worms ]: Next in {hours} jam {minutes} menit - Status: {'Caught' if is_caught else 'Available'}")
+            return worm_data
+        else:
+            print(f"{Fore.RED + Style.BRIGHT}[ Worms ]: Kunci 'next_refresh' tidak ditemukan dalam data.")
+            return None
     else:
-        print(f"{Fore.RED + Style.BRIGHT}[ Worms ]: Gagal mendapatkan data worm.")
+        print(f"{Fore.RED + Style.BRIGHT}[ Worms ]: Gagal mendapatkan data worm, status code: {response.status_code}")
         return None
 
 def catch_worm():
