@@ -192,12 +192,12 @@ def main():
                 if task_confirm.lower() == 'y':
                     get_tasks()
 
-            for i in range(30, 0, -1):
-                sys.stdout.write(f"\r{Fore.CYAN+Style.BRIGHT}============ Selesai, tunggu {i} detik.. ============")
-                sys.stdout.flush()
-                time.sleep(1)
-            print()
-            clear_console()
+            for i in range(30 * 60, 0, -1):  # 30 menit dalam detik
+    sys.stdout.write(f"\r{Fore.CYAN+Style.BRIGHT}============ Selesai, tunggu {i // 60} menit {i % 60} detik.. ============")
+    sys.stdout.flush()
+    time.sleep(1)
+print()  # Cetak baris baru setelah hitungan mundur selesai
+clear_console()
 
 if __name__ == "__main__":
     main()
